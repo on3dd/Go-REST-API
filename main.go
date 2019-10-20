@@ -12,9 +12,7 @@ import (
 	"time"
 )
 
-var (
-	db *sql.DB
-)
+var db *sql.DB
 
 func main() {
 	f, err := os.OpenFile("logfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
