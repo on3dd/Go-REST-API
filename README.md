@@ -1,5 +1,5 @@
 # Go-REST-API
-Yet another REST AP written in Go with connection to PostgreSQL database
+Yet another REST API written in Go with connection to PostgreSQL database
 
 ## Install
 Make sure Go is already installed on your PC.
