@@ -39,13 +39,11 @@ func getPost(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{'status':'error'}"))
 		log.Fatal(err)
-		return
 	}
 
 	err = json.NewEncoder(w).Encode(post)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 }
 
@@ -63,7 +61,6 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	var posts []*Post
@@ -74,7 +71,6 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("{'status':'error'}"))
 			log.Fatal(err)
-			return
 		}
 		posts = append(posts, post)
 	}
@@ -82,7 +78,6 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{'status':'error'}"))
 		log.Fatal(err)
-		return
 	}
 
 	if len(posts) == 0 {
@@ -94,7 +89,6 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{'status':'error'}"))
 		log.Fatal(err)
-		return
 	}
 }
 
