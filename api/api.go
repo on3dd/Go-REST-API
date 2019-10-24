@@ -1,8 +1,9 @@
-package main
+package api
 
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"time"
@@ -16,8 +17,30 @@ type Post struct {
 	Text      string `json:"text"`
 }
 
+type API struct {
+	db *sql.DB
+}
+
+func New(db *sql.DB) *API {
+	return &API{
+		db,
+	}
+}
+
+func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	router := mux.NewRouter()
+
+	router.HandleFunc("/api/v1/getPost", api.getPost).Methods("GET")
+	router.HandleFunc("/api/v1/getPosts", api.getPosts).Methods("GET")
+	router.HandleFunc("/api/v1/addPost", api.addPost).Methods("POST")
+	router.HandleFunc("/api/v1/updatePost", api.updatePost).Methods("PUT")
+	router.HandleFunc("/api/v1/deletePost", api.deletePost).Methods("DELETE")
+
+	router.ServeHTTP(w, r)
+}
+
 // getPost gets single post from DB by id
-func getPost(w http.ResponseWriter, r *http.Request) {
+func (api *API) getPost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	id := r.FormValue("id")
@@ -27,7 +50,7 @@ func getPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	row := db.QueryRow("SELECT * FROM posts WHERE id = $1", id)
+	row := api.db.QueryRow("SELECT * FROM posts WHERE id = $1", id)
 
 	var post Post
 	err := row.Scan(&post.Id, &post.Author, &post.Posted_at, &post.Title, &post.Text)
@@ -48,16 +71,16 @@ func getPost(w http.ResponseWriter, r *http.Request) {
 }
 
 // getPosts gets all posts from DB
-func getPosts(w http.ResponseWriter, r *http.Request) {
+func (api *API) getPosts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var rows *sql.Rows
 	var err error
 	num := r.FormValue("num")
 	if num == "" {
-		rows, err = db.Query("SELECT * FROM posts ORDER BY posted_at DESC")
+		rows, err = api.db.Query("SELECT * FROM posts ORDER BY posted_at DESC")
 	} else {
-		rows, err = db.Query("SELECT * FROM posts ORDER BY posted_at DESC LIMIT $1", num)
+		rows, err = api.db.Query("SELECT * FROM posts ORDER BY posted_at DESC LIMIT $1", num)
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -93,7 +116,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 // addPost adds a new post to DB
-func addPost(w http.ResponseWriter, r *http.Request) {
+func (api *API) addPost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var post Post
@@ -103,7 +126,7 @@ func addPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var num int
-	id := db.QueryRow("SELECT id FROM posts ORDER BY id DESC LIMIT 1")
+	id := api.db.QueryRow("SELECT id FROM posts ORDER BY id DESC LIMIT 1")
 	err = id.Scan(&num)
 	if err == sql.ErrNoRows {
 		post.Id = 1
@@ -114,7 +137,7 @@ func addPost(w http.ResponseWriter, r *http.Request) {
 	}
 	post.Id = num + 1
 
-	_, err = db.Exec("INSERT INTO posts VALUES($1, $2, $3, $4, $5)",
+	_, err = api.db.Exec("INSERT INTO posts VALUES($1, $2, $3, $4, $5)",
 		post.Id, post.Author, time.Now(), post.Title, post.Text)
 
 	if err != nil {
@@ -128,7 +151,7 @@ func addPost(w http.ResponseWriter, r *http.Request) {
 }
 
 // updatePost updates a single post in DB by id
-func updatePost(w http.ResponseWriter, r *http.Request) {
+func (api *API) updatePost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	id := r.FormValue("id")
@@ -144,7 +167,7 @@ func updatePost(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("UPDATE posts SET (title, text) = ($2, $3) WHERE id = ($1)", id, post.Title, post.Text)
+	_, err = api.db.Exec("UPDATE posts SET (title, text) = ($2, $3) WHERE id = ($1)", id, post.Title, post.Text)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("{'status':'error'}"))
@@ -156,7 +179,7 @@ func updatePost(w http.ResponseWriter, r *http.Request) {
 }
 
 // deletePost deletes a single post from DB by id
-func deletePost(w http.ResponseWriter, r *http.Request) {
+func (api *API) deletePost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	id := r.FormValue("id")
@@ -166,7 +189,7 @@ func deletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.Exec("DELETE FROM posts WHERE id = $1", id)
+	_, err := api.db.Exec("DELETE FROM posts WHERE id = $1", id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("{'status':'error'}"))
