@@ -15,7 +15,7 @@ type API struct {
 	db *sql.DB
 }
 
-// db.New returns a new API instance
+// New returns a new API instance
 func New(db *sql.DB) *API {
 	return &API{
 		db: db,
