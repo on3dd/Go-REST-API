@@ -58,8 +58,7 @@ func (api *API) getPost(w http.ResponseWriter, r *http.Request) {
 
 	id := r.FormValue("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusBadRequest, []byte("{'status':'error'}"))
 		return
 	}
 
@@ -68,12 +67,10 @@ func (api *API) getPost(w http.ResponseWriter, r *http.Request) {
 	var post Post
 	err := row.Scan(&post.Id, &post.Author, &post.Posted_at, &post.Title, &post.Text)
 	if err == sql.ErrNoRows {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusNotFound, []byte("{'status':'error'}"))
 		return
 	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusInternalServerError, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 
@@ -89,6 +86,7 @@ func (api *API) getPosts(w http.ResponseWriter, r *http.Request) {
 
 	var rows *sql.Rows
 	var err error
+
 	num := r.FormValue("num")
 	if num == "" {
 		rows, err = api.db.Query("SELECT * FROM posts ORDER BY posted_at DESC")
@@ -96,6 +94,7 @@ func (api *API) getPosts(w http.ResponseWriter, r *http.Request) {
 		rows, err = api.db.Query("SELECT * FROM posts ORDER BY posted_at DESC LIMIT $1", num)
 	}
 	if err != nil {
+		writeStatus(w, http.StatusInternalServerError, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 
@@ -104,15 +103,13 @@ func (api *API) getPosts(w http.ResponseWriter, r *http.Request) {
 		post := &Post{}
 		err := rows.Scan(&post.Id, &post.Author, &post.Posted_at, &post.Title, &post.Text)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("{'status':'error'}"))
+			writeStatus(w, http.StatusInternalServerError, []byte("{'status':'error'}"))
 			log.Fatal(err)
 		}
 		posts = append(posts, post)
 	}
 	if err = rows.Err(); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusInternalServerError, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 
@@ -122,8 +119,7 @@ func (api *API) getPosts(w http.ResponseWriter, r *http.Request) {
 		err = json.NewEncoder(w).Encode(posts)
 	}
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusInternalServerError, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 }
@@ -144,8 +140,7 @@ func (api *API) addPost(w http.ResponseWriter, r *http.Request) {
 	if err == sql.ErrNoRows {
 		post.Id = 1
 	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusInternalServerError, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 	post.Id = num + 1
@@ -154,13 +149,11 @@ func (api *API) addPost(w http.ResponseWriter, r *http.Request) {
 		post.Id, post.Author, time.Now(), post.Title, post.Text)
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusBadRequest, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{'status':'success'}"))
+	writeStatus(w, http.StatusOK, []byte("{'status':'success'}"))
 }
 
 // updatePost updates a single post in DB by id
@@ -169,8 +162,7 @@ func (api *API) updatePost(w http.ResponseWriter, r *http.Request) {
 
 	id := r.FormValue("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusBadRequest, []byte("{'status':'error'}"))
 		return
 	}
 
@@ -182,13 +174,11 @@ func (api *API) updatePost(w http.ResponseWriter, r *http.Request) {
 
 	_, err = api.db.Exec("UPDATE posts SET (title, text) = ($2, $3) WHERE id = ($1)", id, post.Title, post.Text)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusBadRequest, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{'status':'success'}"))
+	writeStatus(w, http.StatusOK, []byte("{'status':'success'}"))
 }
 
 // deletePost deletes a single post from DB by id
@@ -197,18 +187,21 @@ func (api *API) deletePost(w http.ResponseWriter, r *http.Request) {
 
 	id := r.FormValue("id")
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusBadRequest, []byte("{'status':'error'}"))
 		return
 	}
 
 	_, err := api.db.Exec("DELETE FROM posts WHERE id = $1", id)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("{'status':'error'}"))
+		writeStatus(w, http.StatusBadRequest, []byte("{'status':'error'}"))
 		log.Fatal(err)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{'status':'success'}"))
+	writeStatus(w, http.StatusOK, []byte("{'status':'success'}"))
+}
+
+// writeStatus writes status of the request in header and body of the response
+func writeStatus(w http.ResponseWriter, status int, text[]byte) {
+	w.WriteHeader(status)
+	w.Write(text)
 }

@@ -12,8 +12,6 @@ import (
 	"GO-REST-API/api"
 )
 
-var db *sql.DB
-
 func main() {
 	f, err := openLogfile()
 	if err != nil {
