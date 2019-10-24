@@ -30,6 +30,10 @@ func main() {
 		log.Fatalf("Error initializing DB: %v", err)
 	}
 
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Error pinging DB: %v", err)
+	}
+
 	server := &http.Server{
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
