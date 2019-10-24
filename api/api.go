@@ -9,14 +9,6 @@ import (
 	"time"
 )
 
-type Post struct {
-	Id        int    `json:"id"`
-	Author    int    `json:"author"`
-	Posted_at string `json:"posted_at"`
-	Title     string `json:"title"`
-	Text      string `json:"text"`
-}
-
 type API struct {
 	db *sql.DB
 }
@@ -37,6 +29,14 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	router.HandleFunc("/api/v1/deletePost", api.deletePost).Methods("DELETE")
 
 	router.ServeHTTP(w, r)
+}
+
+type Post struct {
+	Id        int    `json:"id"`
+	Author    int    `json:"author"`
+	Posted_at string `json:"posted_at"`
+	Title     string `json:"title"`
+	Text      string `json:"text"`
 }
 
 // getPost gets single post from DB by id

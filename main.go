@@ -15,30 +15,19 @@ import (
 var db *sql.DB
 
 func main() {
-	f, err := os.OpenFile("logfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := openLogfile()
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
 	defer f.Close()
 	log.SetOutput(f)
 
-	err = godotenv.Load("config.env")
+	config, err := loadConfig()
 	if err != nil {
 		log.Fatal("Error loading config.env file")
 	}
 
-	dbUser := os.Getenv("db_user")
-	dbPass := os.Getenv("db_pass")
-	dbName := os.Getenv("db_name")
-	dbHost := os.Getenv("db_host")
-	dbPort := os.Getenv("db_port")
-
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPass, dbName)
-
-	db, err = sql.Open("postgres", psqlInfo)
-
+	db, err := initDatabase(config)
 	if err = db.Ping(); err != nil {
 		log.Fatal(err)
 	}
@@ -54,4 +43,41 @@ func main() {
 
 	fmt.Printf("Server successfully started at port %v\n", server.Addr)
 	log.Println(server.ListenAndServe())
+}
+
+type Config struct {
+	dbUser string
+	dbPass string
+	dbName string
+	dbHost string
+	dbPort string
+}
+
+func openLogfile() (f *os.File, err error) {
+	f, err = os.OpenFile("logfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	return f, err
+}
+
+func loadConfig() (config *Config, err error) {
+	err = godotenv.Load("config.env")
+	if err != nil {
+		log.Fatal("Error loading config.env file")
+	}
+	config = &Config {
+		dbUser : os.Getenv("db_user"),
+		dbPass : os.Getenv("db_pass"),
+		dbName : os.Getenv("db_name"),
+		dbHost : os.Getenv("db_host"),
+		dbPort : os.Getenv("db_port"),
+	}
+	return config, err
+}
+
+func initDatabase(c *Config) (db *sql.DB, err error) {
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		c.dbHost, c.dbPort, c.dbUser, c.dbPass, c.dbName)
+
+	db, err = sql.Open("postgres", psqlInfo)
+	return db, err
 }
