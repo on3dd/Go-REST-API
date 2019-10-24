@@ -6,6 +6,8 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"reflect"
+	"runtime"
 	"time"
 )
 
@@ -13,24 +15,35 @@ type API struct {
 	db *sql.DB
 }
 
+// db.New returns a new API instance
 func New(db *sql.DB) *API {
 	return &API{
-		db,
+		db: db,
 	}
 }
 
 func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/api/v1/getPost", api.getPost).Methods("GET")
-	router.HandleFunc("/api/v1/getPosts", api.getPosts).Methods("GET")
-	router.HandleFunc("/api/v1/addPost", api.addPost).Methods("POST")
-	router.HandleFunc("/api/v1/updatePost", api.updatePost).Methods("PUT")
-	router.HandleFunc("/api/v1/deletePost", api.deletePost).Methods("DELETE")
+	router.HandleFunc("/api/v1/getPost", logHandlerCall(api.getPost)).Methods("GET")
+	router.HandleFunc("/api/v1/getPosts", logHandlerCall(api.getPosts)).Methods("GET")
+	router.HandleFunc("/api/v1/addPost", logHandlerCall(api.addPost)).Methods("POST")
+	router.HandleFunc("/api/v1/updatePost", logHandlerCall(api.updatePost)).Methods("PUT")
+	router.HandleFunc("/api/v1/deletePost", logHandlerCall(api.deletePost)).Methods("DELETE")
 
 	router.ServeHTTP(w, r)
 }
 
+// logHandlerCall logs any handler call
+func logHandlerCall(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+		log.Printf("Handler function called: %v", name)
+		handler(w, r)
+	}
+}
+
+// Post represents a Post instance in the DB
 type Post struct {
 	Id        int    `json:"id"`
 	Author    int    `json:"author"`

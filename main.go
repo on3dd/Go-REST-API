@@ -17,19 +17,19 @@ var db *sql.DB
 func main() {
 	f, err := openLogfile()
 	if err != nil {
-		log.Fatalf("error opening file: %v", err)
+		log.Fatalf("Error opening file: %v", err)
 	}
 	defer f.Close()
 	log.SetOutput(f)
 
 	config, err := loadConfig()
 	if err != nil {
-		log.Fatal("Error loading config.env file")
+		log.Fatalf("Error loading config.env file: %v", err)
 	}
 
 	db, err := initDatabase(config)
 	if err = db.Ping(); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error initializing DB: %v", err)
 	}
 
 	server := &http.Server{
@@ -41,10 +41,11 @@ func main() {
 	apiHandler := api.New(db)
 	http.Handle("/api/", apiHandler)
 
-	fmt.Printf("Server successfully started at port %v\n", server.Addr)
+	log.Printf("Server successfully started at port %v\n", server.Addr)
 	log.Println(server.ListenAndServe())
 }
 
+// Config represents structure of the config.env
 type Config struct {
 	dbUser string
 	dbPass string
@@ -63,6 +64,7 @@ func loadConfig() (config *Config, err error) {
 	if err != nil {
 		log.Fatal("Error loading config.env file")
 	}
+
 	config = &Config {
 		dbUser : os.Getenv("db_user"),
 		dbPass : os.Getenv("db_pass"),
