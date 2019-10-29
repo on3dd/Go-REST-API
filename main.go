@@ -26,11 +26,11 @@ func main() {
 	}
 
 	db, err := initDatabase(config)
-	if err = db.Ping(); err != nil {
-		log.Fatalf("Error initializing DB: %v", err)
+	if err != nil {
+		log.Fatalf("Error initializing the database: %v", err)
 	}
 
-	if err = db.Ping(); err != nil {
+	if err := db.Ping(); err != nil {
 		log.Fatalf("Error pinging DB: %v", err)
 	}
 
